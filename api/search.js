@@ -26,48 +26,55 @@ export default async function handler(req, res) {
     const status = req.query.status || "Active";
     const top = Math.min(Number(req.query.top) || 12, 50);
 
-    const filters = [];
+    const filters = /** @type {string[]} */ ([]);
 
-    if (status) filters.push("StandardStatus eq '" + esc(status) + "'");
-    if (city) filters.push("City eq '" + esc(city) + "'");
-    if (zip) filters.push("PostalCode eq '" + esc(zip) + "'");
+    if (status) {
+      filters.push("StandardStatus eq '" + esc(status) + "'");
+    }
+
+    if (city) {
+      filters.push("City eq '" + esc(city) + "'");
+    }
+
+    if (zip) {
+      filters.push("PostalCode eq '" + esc(zip) + "'");
+    }
+
+    const fields = [
+      "ListingKey",
+      "ListingId",
+      "StandardStatus",
+      "MlsStatus",
+      "StreetNumber",
+      "StreetName",
+      "StreetSuffix",
+      "City",
+      "StateOrProvince",
+      "PostalCode",
+      "ListPrice",
+      "ClosePrice",
+      "BedroomsTotal",
+      "BathroomsTotalInteger",
+      "BathroomsTotal",
+      "LivingArea",
+      "BuildingAreaTotal",
+      "DaysOnMarket",
+      "CumulativeDaysOnMarket",
+      "Latitude",
+      "Longitude",
+      "ModificationTimestamp",
+      "PhotosCount",
+      "MlgCanUse",
+      "ListOfficeName",
+      "ListOfficeMlsId",
+    ];
 
     const params = new URLSearchParams();
     params.set("$top", String(top));
     params.set("$orderby", "ModificationTimestamp desc");
-    params.set(
-      "$select",
-      [
-        "ListingKey",
-        "ListingId",
-        "StandardStatus",
-        "MlsStatus",
-        "StreetNumber",
-        "StreetName",
-        "StreetSuffix",
-        "City",
-        "StateOrProvince",
-        "PostalCode",
-        "ListPrice",
-        "ClosePrice",
-        "BedroomsTotal",
-        "BathroomsTotalInteger",
-        "BathroomsTotal",
-        "LivingArea",
-        "BuildingAreaTotal",
-        "DaysOnMarket",
-        "CumulativeDaysOnMarket",
-        "Latitude",
-        "Longitude",
-        "ModificationTimestamp",
-        "PhotosCount",
-        "MlgCanUse",
-        "ListOfficeName",
-        "ListOfficeMlsId",
-      ].join(",")
-    );
+    params.set("$select", fields.join(","));
 
-    if (filters.length) {
+    if (filters.length > 0) {
       params.set("$filter", filters.join(" and "));
     }
 
@@ -91,11 +98,8 @@ export default async function handler(req, res) {
       });
     }
 
-    const listings = (data.value || []).map((item) => ({
-      listingKey: item.ListingKey,
-      listingId: item.ListingId,
-      status: item.StandardStatus || item.MlsStatus,
-      address: [
+    const listings = (data.value || []).map((item) => {
+      const address = [
         item.StreetNumber,
         item.StreetName,
         item.StreetSuffix,
@@ -104,27 +108,35 @@ export default async function handler(req, res) {
         item.PostalCode,
       ]
         .filter(Boolean)
-        .join(" "),
-      city: item.City,
-      state: item.StateOrProvince,
-      zip: item.PostalCode,
-      price: item.ListPrice || item.ClosePrice || 0,
-      closePrice: item.ClosePrice || null,
-      listPrice: item.ListPrice || null,
-      beds: item.BedroomsTotal || null,
-      baths: item.BathroomsTotalInteger || item.BathroomsTotal || null,
-      sqft: item.LivingArea || item.BuildingAreaTotal || null,
-      daysOnMarket: item.DaysOnMarket || item.CumulativeDaysOnMarket || null,
-      latitude: item.Latitude,
-      longitude: item.Longitude,
-      modificationTimestamp: item.ModificationTimestamp,
-      photosCount: item.PhotosCount,
-      mlgCanUse: item.MlgCanUse,
-      listingCourtesy:
-        item.ListOfficeName ||
-        item.ListOfficeMlsId ||
-        "Listing courtesy of MLS Grid",
-    }));
+        .join(" ");
+
+      return {
+        listingKey: item.ListingKey,
+        listingId: item.ListingId,
+        status: item.StandardStatus || item.MlsStatus,
+        address,
+        city: item.City,
+        state: item.StateOrProvince,
+        zip: item.PostalCode,
+        price: item.ListPrice || item.ClosePrice || 0,
+        closePrice: item.ClosePrice || null,
+        listPrice: item.ListPrice || null,
+        beds: item.BedroomsTotal || null,
+        baths: item.BathroomsTotalInteger || item.BathroomsTotal || null,
+        sqft: item.LivingArea || item.BuildingAreaTotal || null,
+        daysOnMarket:
+          item.DaysOnMarket || item.CumulativeDaysOnMarket || null,
+        latitude: item.Latitude,
+        longitude: item.Longitude,
+        modificationTimestamp: item.ModificationTimestamp,
+        photosCount: item.PhotosCount,
+        mlgCanUse: item.MlgCanUse,
+        listingCourtesy:
+          item.ListOfficeName ||
+          item.ListOfficeMlsId ||
+          "Listing courtesy of MLS Grid",
+      };
+    });
 
     return json(res, 200, {
       count: listings.length,
