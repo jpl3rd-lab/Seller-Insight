@@ -13,11 +13,10 @@ function esc(value = "") {
 export default async function handler(req, res) {
   try {
     const apiKey = process.env.MLSGRID_API_KEY;
-    const apiSecret = process.env.MLSGRID_API_SECRET;
 
-    if (!apiKey || !apiSecret) {
+    if (!apiKey) {
       return json(res, 500, {
-        error: "Missing MLSGRID_API_KEY or MLSGRID_API_SECRET",
+        error: "Missing MLSGRID_API_KEY",
       });
     }
 
@@ -80,11 +79,9 @@ export default async function handler(req, res) {
 
     const url = MLSGRID_BASE_URL + "/Property?" + params.toString();
 
-    const auth = Buffer.from(apiKey + ":" + apiSecret).toString("base64");
-
     const response = await fetch(url, {
       headers: {
-        Authorization: "Basic " + auth,
+        Authorization: "Bearer " + apiKey,
         Accept: "application/json",
       },
     });
